@@ -7,7 +7,7 @@ from game import GameState, RandomPlayer, Player, PLAYER1
 
 class CustomEnv(gym.Env):
     """Custom Environment that follows gym interface."""
-    metadata = {"render_modes": ["console"]}
+    metadata = {"render_modes": ["console"], "render_fps": 30}
 
     def __init__(
         self,
@@ -34,7 +34,7 @@ class CustomEnv(gym.Env):
         """Called to take an action with the environment.
 
         Args:
-            action (_type_): _description_
+            action (int): Action in [0,8] encoding the position on the grid.
 
         Returns:
             Tuple[Any, float, bool, bool, Dict[]]: Next Observation, Immediate Reward,
@@ -43,7 +43,7 @@ class CustomEnv(gym.Env):
         if 0 > action or action > 8:
             raise ValueError(f"Received invalid action={action}!")
         observation, reward, terminated = self.state.make_move(action)
-        truncated = False  # TODO: Might reconsider
+        truncated = False 
         info = {}
         return observation, reward, terminated, truncated, info
 
@@ -65,13 +65,14 @@ class CustomEnv(gym.Env):
 
     def render(self):
         """(Optional) Allows to visualize the agent in action."""
-        state = self.state.get_board_state()
-        print(state[:3])
-        print(state[3:6])
-        print(state[6:])
+        if self.render_mode == "console":
+            state = self.state.get_board_state()
+            print(state[:3])
+            print(state[3:6])
+            print(state[6:])
 
     def close(self):
-        pass
+        pass # no ressources to clean up after
 
 
 if __name__ == "__main__":
@@ -85,24 +86,21 @@ if __name__ == "__main__":
     from stable_baselines3 import DQN
     from stable_baselines3.common.env_util import make_vec_env
 
-    env = make_vec_env(CustomEnv, n_envs=1, env_kwargs=dict(opponent=opponent), seed=2)
+    env = make_vec_env(CustomEnv, n_envs=1, env_kwargs=dict(opponent=opponent, toggle_players=False), seed=2)
 
     model = DQN("MlpPolicy", env, learning_rate=0.001, verbose=1)
     print(model.policy)
-    model = model.learn(5000)
+    model = model.learn(100000)
     # Test the trained agent
     # using the vecenv
     obs = env.reset()
     n_steps = 20
     for step in range(n_steps):
-        print("State stuff")
-        print(env.get_attr("state")[0].get_board_state())
         action, _ = model.predict(obs, deterministic=True)
         print(f"Step {step + 1}")
         print("Action: ", action)
         obs, reward, done, info = env.step(action)
         print("obs=", obs, "reward=", reward, "done=", done)
-        print(env.get_attr("state")[0].get_board_state())
         env.render()
         if done:
             # Note that the VecEnv resets automatically
