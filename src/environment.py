@@ -66,6 +66,20 @@ if __name__ == "__main__":
     # Check the sanity of the environment
     opponent = RandomPlayer()
     env = CustomEnv(opponent)
-    print(env.action_space.sample())
-    print(env.observation_space.sample())
     check_env(env)
+    env.reset()
+
+    import random
+
+    n_steps = 20
+    for step in range(n_steps):
+        print(f"Step {step + 1}")
+        obs, reward, terminated, truncated, info = env.step(random.randint(0,8))
+        done = terminated or truncated
+        print(obs[:3])
+        print(obs[3:6]) 
+        print(obs[6:])
+        print("obs=", obs, "reward=", reward, "done=", done)
+        if done:
+            print("Goal reached!", "reward=", reward)
+            break

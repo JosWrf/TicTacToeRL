@@ -15,7 +15,7 @@ class Player(ABC):
 
 class RandomPlayer(Player):
     def play(self, board):
-        return random.choices([i for i,_ in enumerate(board) if board[i] == 0])
+        return random.choices([i for i,_ in enumerate(board) if board[i] == 0])[0]
 
 class GameBoard:
 
@@ -44,15 +44,18 @@ class GameState:
         self.player = player
         self.opponent = opponent
         self.toggle_players = toggle_players
-        self.reset_state()
+        self.reset_state(toggle=False)
 
-    def reset_state(self):
+    def reset_state(self, toggle: bool = True):
         self.turn = 0
         self.board.reset_board()
-        if self.toggle_players:
-            self.player = PLAYER1 if self.player == PLAYER2 else PLAYER2
+        if self.toggle_players and toggle:
+            self.player = self.get_opponent()
         if self.player == PLAYER2:
             self.make_opponent_move()
+
+    def get_opponent(self) -> int:
+        return PLAYER1 if self.player == PLAYER2 else PLAYER2
 
     def get_board_state(self):
         return self.board.get_board()
@@ -90,7 +93,7 @@ class GameState:
         self.make_opponent_move()
         reward = self.evaluate_status()
         if reward != ONGOING:
-            return self.get_board_state(), -reward, True  
+            return self.get_board_state(), -reward if reward == WIN else reward, True  
 
         return self.get_board_state(), 0, False
 
@@ -98,5 +101,5 @@ class GameState:
     def make_opponent_move(self):
         action = self.opponent.play(self.get_board_state())
         if self.board.is_action_valid(action):
-            self.board.set_cell(action, self.player+1)
+            self.board.set_cell(action, self.get_opponent())
             self.turn+=1
