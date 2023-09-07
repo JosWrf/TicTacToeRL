@@ -38,7 +38,6 @@ class GameBoard:
         self.board = np.zeros(shape=(9,), dtype=np.int32)
 
 class GameState:
-    #TODO: Figure how to handle opponents
     def __init__(self, opponent: Player, player: int, toggle_players: bool) -> None:
         self.board = GameBoard()
         self.player = player
