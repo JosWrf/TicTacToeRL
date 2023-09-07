@@ -2,7 +2,7 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 from stable_baselines3.common.env_checker import check_env
-from game import GameState
+from game import GameState, RandomPlayer,Player, PLAYER1
 
 
 class CustomEnv(gym.Env):
@@ -10,13 +10,16 @@ class CustomEnv(gym.Env):
 
     metadata = {"render_modes": ["human"], "render_fps": 30}
 
-    def __init__(self, dimension: int = 9):
+    def __init__(self, opponent: Player, dimension: int = 9, player: int = PLAYER1, toggle_players: bool = True):
         super().__init__()
         self.dimension = dimension
         self.action_space = spaces.Discrete(dimension)
         # 0 for empty cell, 1 for Player1, 2 for Player2
         self.observation_space = spaces.Box(low=0, high=2, shape=(dimension,), dtype=np.int32)
-        self.state = GameState()
+        self.opponent = opponent
+        self.player = player
+        self.toggle_players = toggle_players
+        self.state = GameState(opponent,self.player, self.toggle_players)
 
     def step(self, action):
         """Called to take an action with the environment.
@@ -30,11 +33,8 @@ class CustomEnv(gym.Env):
         """
         if  0 > action  or action > 8:
             raise ValueError(f"Received invalid action={action}!")
-        #TODO: What to do when the action is not valid since an entry is != 0 ?! 
-        observation = ...
-        reward = ...
-        terminated = ...
-        truncated = ...
+        observation, reward, terminated = self.state.make_move(action)
+        truncated = False #TODO: Might reconsider
         info = {}
         return observation, reward, terminated, truncated, info
 
@@ -57,14 +57,15 @@ class CustomEnv(gym.Env):
     def render(self):
         """(Optional) Allows to visualize the agent in action.
         """
-        ...
+        pass
 
     def close(self):
         pass
 
 if __name__ == "__main__":
     # Check the sanity of the environment
-    env = CustomEnv()
+    opponent = RandomPlayer()
+    env = CustomEnv(opponent)
     print(env.action_space.sample())
     print(env.observation_space.sample())
-    #check_env(env)
+    check_env(env)

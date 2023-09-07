@@ -1,66 +1,102 @@
 import numpy as np
+import random
+from abc import ABC, abstractmethod
+
+PLAYER1 = 1
+PLAYER2 = 2
+WIN = 1
+TIE = 0.2
+ONGOING = -1
+
+class Player(ABC):
+    @abstractmethod
+    def play(self, board: np.ndarray) -> int:
+        pass
+
+class RandomPlayer(Player):
+    def play(self, board):
+        return random.choices([i for i,_ in enumerate(board) if board[i] == 0])
 
 class GameBoard:
 
     def __init__(self):
         self.reset_board()
 
-    def get_board(self): 
+    def get_board(self) -> "GameBoard": 
         return self.board
 
-    def set_cell(self, index, value):
+    def set_cell(self, index: int, value:int) -> None:
         self.board[index] = value
 
+    def get_cell(self, index: int) -> int:
+        return self.board[index]
+
+    def is_action_valid(self, action: int) -> bool:
+        return action in [i for i,_ in enumerate(self.board) if self.board[i] == 0]
+
     def reset_board(self):
-        self.board = np.zeros(shape=(9,1), dtype=np.int32)
+        self.board = np.zeros(shape=(9,), dtype=np.int32)
 
 class GameState:
     #TODO: Figure how to handle opponents
-    def __init__(self) -> None:
+    def __init__(self, opponent: Player, player: int, toggle_players: bool) -> None:
         self.board = GameBoard()
-        self.player = 1
-        self.turn = 0
-        self.opponent = ...
+        self.player = player
+        self.opponent = opponent
+        self.toggle_players = toggle_players
+        self.reset_state()
 
     def reset_state(self):
         self.turn = 0
-        self.board.resetBoard()
+        self.board.reset_board()
+        if self.toggle_players:
+            self.player = PLAYER1 if self.player == PLAYER2 else PLAYER2
+        if self.player == PLAYER2:
+            self.make_opponent_move()
 
     def get_board_state(self):
         return self.board.get_board()
 
-    def is_game_done(self):
+    def evaluate_status(self):
         if self.turn > 8: 
-            return True
+            return TIE
 
         for i in range(3): 
             if (i == 0 or i == 2):
                 # Diagonals
-                if (self.board.get_cell(i) == self.board.getCell(4) and
-                    self.board.get_cell(8 - i) == self.board.getCell(i) and self.board.get_cell(i) != 0):
-                    return True
+                if (self.board.get_cell(i) == self.board.get_cell(4) and
+                    self.board.get_cell(8 - i) == self.board.get_cell(i) and self.board.get_cell(i) != 0):
+                    return WIN
             # Columns
             if (self.board.get_cell(i) == self.board.get_cell(i + 3) and
                 self.board.get_cell(i + 6) == self.board.get_cell(i) and self.board.get_cell(i) != 0):
-                return True
+                return WIN
             # Rows
             row = i * 3
             if (self.board.get_cell(row) == self.board.get_cell(row + 1) and
                 self.board.get_cell(row + 2) == self.board.get_cell(row) and self.board.get_cell(row) != 0):
-                return True
+                return WIN
 
-        return False
+        return ONGOING
 
     def make_move(self, action):
-        if not self.is_game_done(): 
+        if self.board.is_action_valid(action):
             self.board.set_cell(action, self.player)
             self.turn+=1
+            reward = self.evaluate_status()
+            if reward != ONGOING:
+                return self.get_board_state(), reward, True  
 
-            if not self.is_game_done():
-                self.make_opponent_move()
+        self.make_opponent_move()
+        reward = self.evaluate_status()
+        if reward != ONGOING:
+            return self.get_board_state(), -reward, True  
+
+        return self.get_board_state(), 0, False
+
 
     def make_opponent_move(self):
-        #TODO: Might require handling the case when the action is not valid
-        action = ...
-        self.board.set_cell(action, self.player+1)
-        self.turn+=1
+        action = self.opponent.play(self.get_board_state())
+        if self.board.is_action_valid(action):
+            self.board.set_cell(action, self.player+1)
+            self.turn+=1
