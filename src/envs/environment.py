@@ -2,7 +2,7 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 from stable_baselines3.common.env_checker import check_env
-from game import TIE, GameState, RandomPlayer, Player, PLAYER1
+from envs.game import GameState, RandomPlayer, Player, PLAYER1
 
 
 class TicTacToe(gym.Env):
@@ -75,43 +75,8 @@ class TicTacToe(gym.Env):
     def close(self):
         pass  # no ressources to clean up after
 
-
 if __name__ == "__main__":
     # Check the sanity of the environment
     opponent = RandomPlayer()
     env = TicTacToe(opponent)
     check_env(env)
-    env.reset()
-
-    import random
-    from stable_baselines3 import DQN
-    from stable_baselines3.common.env_util import make_vec_env
-    from stable_baselines3.common.monitor import Monitor
-    from stable_baselines3.common.evaluation import evaluate_policy
-
-    env = make_vec_env(TicTacToe, n_envs=1, env_kwargs=dict(opponent=opponent, toggle_roles=False), seed=2)
-
-    model = DQN("MlpPolicy", env, learning_rate=0.001, verbose=1)
-    print(model.policy)
-    model = model.learn(150000)
-    # Test the trained agent
-    # using the vecenv
-    obs = env.reset()
-    episodes = 100
-    stats = {"ties": 0, "wins": 0, "losses": 0}
-    for i in range(episodes):
-        done = False
-        while not done:
-            action, _ = model.predict(obs, deterministic=True)
-            obs, reward, done, info = env.step(action)
-            if done:
-                # Note that the VecEnv resets automatically
-                # when a done signal is encountered
-                if reward < 0:
-                    stats["losses"] += 1
-                elif reward == TIE:
-                    stats["ties"] += 1
-                else:
-                    stats["wins"] += 1
-
-    print(stats)
