@@ -4,10 +4,7 @@ from typing import Any, Dict
 import gymnasium
 import os
 from collections import deque
-from envs.environment import TicTacToe
-from envs.game import TIE, RLAgent, RandomPlayer
-from stable_baselines3 import PPO
-from stable_baselines3.common.env_util import make_vec_env
+from envs.game import TIE, RLAgent
 from stable_baselines3.common.callbacks import BaseCallback
 
 class SelfplayCallback(BaseCallback):

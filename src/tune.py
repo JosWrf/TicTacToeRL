@@ -1,6 +1,5 @@
 from typing import Any, Dict
 import optuna
-from optuna.samplers import TPESampler
 from stable_baselines3 import PPO
 from agent import SelfplayCallback, evaluate
 from envs.environment import TicTacToe
@@ -9,15 +8,17 @@ from stable_baselines3.common.env_util import make_vec_env
 from envs.game import RandomPlayer
 
 N_TRIALS = 20
+TRAIN_SEED = 17
+TEST_SEED = 2
 
 DEFAULT_PARAMS = {"policy": "MlpPolicy", "verbose": 0}
 
 
 def sample_ppo_hyperparams(trial: optuna.Trial) -> Dict[str, Any]:
     # TODO: Add support for more hyperparameters
-    gamma = 1.0 - trial.suggest_float("gamma", 0.0001, 0.1, log=True)
+    gamma = 1.0 - trial.suggest_float("gamma", 0.0001, 0.01, log=True)
     max_grad_norm = trial.suggest_float("max_grad_norm", 0.3, 5.0, log=True)
-    learning_rate = trial.suggest_float("l_r", 1e-5, 0.1, log=True)
+    learning_rate = trial.suggest_float("l_r", 1e-5, 0.01, log=True)
 
     return {
         "gamma": gamma,
@@ -32,7 +33,7 @@ def objective(trial: optuna.Trial) -> float:
 
     opponent = RandomPlayer()
     env = TicTacToe(opponent)
-    env = make_vec_env(TicTacToe, n_envs=1, env_kwargs=dict(opponent=opponent), seed=2)
+    env = make_vec_env(TicTacToe, n_envs=1, env_kwargs=dict(opponent=opponent), seed=TRAIN_SEED)
     params["env"] = env
 
     model = PPO(**params)
@@ -51,7 +52,7 @@ def objective(trial: optuna.Trial) -> float:
         return float("nan")
 
     test_env = make_vec_env(
-        TicTacToe, env_kwargs=dict(opponent=RandomPlayer()), seed=17
+        TicTacToe, env_kwargs=dict(opponent=RandomPlayer()), seed=TEST_SEED
     )
     stats = evaluate(model, test_env, 1000)
     return (stats["W"] + stats["T"]) / sum(stats.values()) # Use win ratio against random player as criteria
