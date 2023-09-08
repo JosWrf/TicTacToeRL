@@ -21,6 +21,13 @@ class RandomPlayer(Player):
     def play(self, board):
         return random.choices([i for i, _ in enumerate(board) if board[i] == 0])[0]
 
+class RLAgent(Player):
+    def __init__(self, policy) -> None:
+        self.policy = policy
+
+    def play(self, board):
+        return self.policy.predict(board)[0]
+
 
 class GameBoard:
     def __init__(self):
@@ -57,6 +64,9 @@ class GameState:
             self.player = self.get_opponent()
         if self.player == PLAYER2:
             self.make_opponent_move()
+
+    def set_opponent(self, opponent: Player) -> None:
+        self.opponent = opponent
 
     def get_opponent(self) -> int:
         return PLAYER1 if self.player == PLAYER2 else PLAYER2
