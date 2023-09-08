@@ -101,8 +101,14 @@ def evaluate(model: Any, env: gymnasium.Env, episodes:int = 100) -> None:
 
     print(stats)
     
+def load_policy(path: str):
+    model = PPO.load(path)
+    test_env = make_vec_env(TicTacToe, env_kwargs=dict(opponent=RandomPlayer()), seed=17)
+    evaluate(model, test_env, 10000)
+    
 
 if __name__ == "__main__":
-    model = learn_policy()
-    test_env = make_vec_env(TicTacToe, env_kwargs=dict(opponent=RandomPlayer()), seed=17)
-    evaluate(model, test_env)
+    #model = learn_policy()
+    #test_env = make_vec_env(TicTacToe, env_kwargs=dict(opponent=RandomPlayer()), seed=17)
+    #evaluate(model, test_env)
+    load_policy("./models/PPO-TicTacToe.zip")
