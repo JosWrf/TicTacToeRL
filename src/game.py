@@ -7,6 +7,7 @@ PLAYER1 = 1
 PLAYER2 = 2
 WIN = 1
 TIE = 0.2
+INVALID_MOVE = -0.3
 ONGOING = -1
 
 
@@ -42,15 +43,18 @@ class GameBoard:
 
 
 class GameState:
-    def __init__(self, opponent: Player, player: int) -> None:
+    def __init__(self, opponent: Player, player: int, toggle_roles: bool) -> None:
         self.board = GameBoard()
         self.player = player
         self.opponent = opponent
+        self.toggle_roles = toggle_roles
         self.reset_state(toggle=False)
 
     def reset_state(self, toggle: bool = True) -> None:
         self.turn = 0
         self.board.reset_board()
+        if self.toggle_roles and toggle:
+            self.player = self.get_opponent()
         if self.player == PLAYER2:
             self.make_opponent_move()
 
@@ -92,7 +96,8 @@ class GameState:
         return ONGOING
 
     def make_move(self, action) -> Tuple[np.ndarray, float, bool]:
-        if self.board.is_action_valid(action):
+        valid_move = self.board.is_action_valid(action)
+        if valid_move:
             self.board.set_cell(action, self.player)
             self.turn += 1
             reward = self.evaluate_status()
@@ -104,7 +109,7 @@ class GameState:
         if reward != ONGOING:
             return self.get_board_state(), -reward if reward == WIN else reward, True
 
-        return self.get_board_state(), 0, False
+        return self.get_board_state(), 0 if valid_move else INVALID_MOVE, False
 
     def make_opponent_move(self) -> None:
         action = self.opponent.play(self.get_board_state())

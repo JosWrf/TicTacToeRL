@@ -7,6 +7,7 @@ from game import TIE, GameState, RandomPlayer, Player, PLAYER1
 
 class TicTacToe(gym.Env):
     """Custom Environment that follows gym interface."""
+
     metadata = {"render_modes": ["console"], "render_fps": 30}
 
     def __init__(
@@ -14,7 +15,8 @@ class TicTacToe(gym.Env):
         opponent: Player,
         dimension: int = 9,
         player: int = PLAYER1,
-        render_mode:str ="console"
+        toggle_roles: bool = True,
+        render_mode: str = "console",
     ):
         super().__init__()
         self.render_mode = render_mode
@@ -26,7 +28,8 @@ class TicTacToe(gym.Env):
         )
         self.opponent = opponent
         self.player = player
-        self.state = GameState(opponent, self.player)
+        self.toggle_roles = toggle_roles
+        self.state = GameState(opponent, self.player, toggle_roles)
 
     def step(self, action):
         """Called to take an action with the environment.
@@ -41,7 +44,7 @@ class TicTacToe(gym.Env):
         if 0 > action or action > 8:
             raise ValueError(f"Received invalid action={action}!")
         observation, reward, terminated = self.state.make_move(action)
-        truncated = False 
+        truncated = False
         info = {}
         return observation, reward, terminated, truncated, info
 
@@ -70,7 +73,7 @@ class TicTacToe(gym.Env):
             print(state[6:])
 
     def close(self):
-        pass # no ressources to clean up after
+        pass  # no ressources to clean up after
 
 
 if __name__ == "__main__":
@@ -86,7 +89,7 @@ if __name__ == "__main__":
     from stable_baselines3.common.monitor import Monitor
     from stable_baselines3.common.evaluation import evaluate_policy
 
-    env = make_vec_env(TicTacToe, n_envs=1, env_kwargs=dict(opponent=opponent), seed=2)
+    env = make_vec_env(TicTacToe, n_envs=1, env_kwargs=dict(opponent=opponent, toggle_roles=False), seed=2)
 
     model = DQN("MlpPolicy", env, learning_rate=0.001, verbose=1)
     print(model.policy)
@@ -95,7 +98,7 @@ if __name__ == "__main__":
     # using the vecenv
     obs = env.reset()
     episodes = 100
-    stats = {"ties":0, "wins": 0, "losses": 0}
+    stats = {"ties": 0, "wins": 0, "losses": 0}
     for i in range(episodes):
         done = False
         while not done:
