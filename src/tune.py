@@ -7,7 +7,7 @@ from stable_baselines3.common.env_util import make_vec_env
 
 from envs.game import RandomPlayer
 
-N_TRIALS = 20
+N_TRIALS = 200
 TRAIN_SEED = 17
 TEST_SEED = 2
 
@@ -15,15 +15,16 @@ DEFAULT_PARAMS = {"policy": "MlpPolicy", "verbose": 0}
 
 
 def sample_ppo_hyperparams(trial: optuna.Trial) -> Dict[str, Any]:
-    # TODO: Add support for more hyperparameters
     gamma = 1.0 - trial.suggest_float("gamma", 0.0001, 0.01, log=True)
     max_grad_norm = trial.suggest_float("max_grad_norm", 0.3, 5.0, log=True)
     learning_rate = trial.suggest_float("l_r", 1e-5, 0.01, log=True)
+    n_epochs = trial.suggest_int("epochs", 10, 20)
 
     return {
         "gamma": gamma,
         "learning_rate": learning_rate,
         "max_grad_norm": max_grad_norm,
+        "n_epochs": n_epochs,
     }
 
 
@@ -39,7 +40,7 @@ def objective(trial: optuna.Trial) -> float:
     model = PPO(**params)
 
     selfplay = SelfplayCallback()
-    time_steps = trial.suggest_int("total_timesteps", 5e3, 5e4)
+    time_steps = trial.suggest_int("total_timesteps", 1e5, 1e6)
     learn_params = {"callback": selfplay, "total_timesteps": time_steps}
 
     nan = False
@@ -55,7 +56,15 @@ def objective(trial: optuna.Trial) -> float:
         TicTacToe, env_kwargs=dict(opponent=RandomPlayer()), seed=TEST_SEED
     )
     stats = evaluate(model, test_env, 1000)
-    return (stats["W"] + stats["T"]) / sum(stats.values()) # Use win ratio against random player as criteria
+    val = (stats["W"] + stats["T"]) / sum(stats.values()) # Use win ratio against random player as criteria
+
+    try:
+        if trial.study.best_value < val:
+            trial.set_user_attr("model", model)
+    except:
+        trial.set_user_attr("model", model)
+
+    return val
 
 
 study = optuna.create_study(
@@ -83,3 +92,6 @@ for key, value in trial.params.items():
 print("  User attrs:")
 for key, value in trial.user_attrs.items():
     print(f"    {key}: {value}")
+
+print("Saving Model ")
+trial.user_attrs["model"].save("./model/optModel")
