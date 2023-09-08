@@ -2,10 +2,10 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 from stable_baselines3.common.env_checker import check_env
-from game import GameState, RandomPlayer, Player, PLAYER1
+from game import TIE, GameState, RandomPlayer, Player, PLAYER1
 
 
-class CustomEnv(gym.Env):
+class TicTacToe(gym.Env):
     """Custom Environment that follows gym interface."""
     metadata = {"render_modes": ["console"], "render_fps": 30}
 
@@ -14,7 +14,6 @@ class CustomEnv(gym.Env):
         opponent: Player,
         dimension: int = 9,
         player: int = PLAYER1,
-        toggle_players: bool = True,
         render_mode:str ="console"
     ):
         super().__init__()
@@ -77,7 +76,7 @@ class CustomEnv(gym.Env):
 if __name__ == "__main__":
     # Check the sanity of the environment
     opponent = RandomPlayer()
-    env = CustomEnv(opponent)
+    env = TicTacToe(opponent)
     check_env(env)
     env.reset()
 
@@ -87,28 +86,29 @@ if __name__ == "__main__":
     from stable_baselines3.common.monitor import Monitor
     from stable_baselines3.common.evaluation import evaluate_policy
 
-    env = make_vec_env(CustomEnv, n_envs=1, env_kwargs=dict(opponent=opponent), seed=2)
+    env = make_vec_env(TicTacToe, n_envs=1, env_kwargs=dict(opponent=opponent), seed=2)
 
     model = DQN("MlpPolicy", env, learning_rate=0.001, verbose=1)
     print(model.policy)
-    model = model.learn(100000)
+    model = model.learn(150000)
     # Test the trained agent
     # using the vecenv
     obs = env.reset()
-    n_steps = 20
-    for step in range(n_steps):
-        action, _ = model.predict(obs, deterministic=True)
-        print(f"Step {step + 1}")
-        print("Action: ", action)
-        obs, reward, done, info = env.step(action)
-        print("obs=", obs, "reward=", reward, "done=", done)
-        env.render()
-        if done:
-            # Note that the VecEnv resets automatically
-            # when a done signal is encountered
-            print("Goal reached!", "reward=", reward)
-            break
+    episodes = 100
+    stats = {"ties":0, "wins": 0, "losses": 0}
+    for i in range(episodes):
+        done = False
+        while not done:
+            action, _ = model.predict(obs, deterministic=True)
+            obs, reward, done, info = env.step(action)
+            if done:
+                # Note that the VecEnv resets automatically
+                # when a done signal is encountered
+                if reward < 0:
+                    stats["losses"] += 1
+                elif reward == TIE:
+                    stats["ties"] += 1
+                else:
+                    stats["wins"] += 1
 
-    test_env = Monitor(CustomEnv(opponent))
-    test_env.reset()
-    print(evaluate_policy(model, test_env, 1000))
+    print(stats)
