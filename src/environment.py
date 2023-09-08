@@ -27,8 +27,7 @@ class CustomEnv(gym.Env):
         )
         self.opponent = opponent
         self.player = player
-        self.toggle_players = toggle_players
-        self.state = GameState(opponent, self.player, self.toggle_players)
+        self.state = GameState(opponent, self.player)
 
     def step(self, action):
         """Called to take an action with the environment.
@@ -85,8 +84,10 @@ if __name__ == "__main__":
     import random
     from stable_baselines3 import DQN
     from stable_baselines3.common.env_util import make_vec_env
+    from stable_baselines3.common.monitor import Monitor
+    from stable_baselines3.common.evaluation import evaluate_policy
 
-    env = make_vec_env(CustomEnv, n_envs=1, env_kwargs=dict(opponent=opponent, toggle_players=False), seed=2)
+    env = make_vec_env(CustomEnv, n_envs=1, env_kwargs=dict(opponent=opponent), seed=2)
 
     model = DQN("MlpPolicy", env, learning_rate=0.001, verbose=1)
     print(model.policy)
@@ -107,3 +108,7 @@ if __name__ == "__main__":
             # when a done signal is encountered
             print("Goal reached!", "reward=", reward)
             break
+
+    test_env = Monitor(CustomEnv(opponent))
+    test_env.reset()
+    print(evaluate_policy(model, test_env, 1000))

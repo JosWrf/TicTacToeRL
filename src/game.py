@@ -38,18 +38,15 @@ class GameBoard:
         self.board = np.zeros(shape=(9,), dtype=np.int32)
 
 class GameState:
-    def __init__(self, opponent: Player, player: int, toggle_players: bool) -> None:
+    def __init__(self, opponent: Player, player: int) -> None:
         self.board = GameBoard()
         self.player = player
         self.opponent = opponent
-        self.toggle_players = toggle_players
         self.reset_state(toggle=False)
 
     def reset_state(self, toggle: bool = True):
         self.turn = 0
         self.board.reset_board()
-        if self.toggle_players and toggle:
-            self.player = self.get_opponent()
         if self.player == PLAYER2:
             self.make_opponent_move()
 
